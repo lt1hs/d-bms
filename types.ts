@@ -34,7 +34,7 @@ export enum ProcessStatus {
 export interface Book {
   id: string;
   category: Category;
-  
+
   // Part 1: Primary Data
   title: string;
   author: string;
@@ -56,4 +56,36 @@ export interface Book {
   depositNumber: string;
   isbn: string;
   pageCount: number;
+
+  // Part 3: Production Tracking
+  receivedFromResearchDate?: string;
+  titleApprovalDate?: string;
+  depositRequestDate?: string;
+  depositReceiveDate?: string;
+  orgWordReceiveDate?: string;
+  abstractReceiveDate?: string;
+  disbursementFormDate?: string;
+  titleApprovalImage?: string;
+  disbursementFormImage?: string;
+  sentToDirectorDate?: string;
+  receivedFromDirectorDate?: string;
+  sentToDesignerDate?: string;
+  receivedFromDesignerDate?: string;
+  digitalPrintDate?: string;
+  offsetPrintDate?: string;
+  printingHouse?: string;
+  printQuantity?: string;
+  executor?: string;
+  coverEndorsementDate?: string;
+  receiveFromPrintDate?: string;
+
+  // Files Status
+  coverEditableUrl?: string;
+  coverViewableUrl?: string;
+  coverPrintableUrl?: string;
+  coverSignatureUrl?: string;
+  bodyEditableUrl?: string;
+  bodyPdfUrl?: string;
+  bodyWatermarkUrl?: string;
+  bodySignaturesUrl?: string;
 }

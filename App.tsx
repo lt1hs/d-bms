@@ -24,7 +24,9 @@ import {
   ArrowUpRight,
   MoreVertical,
   Activity,
-  Box
+  Box,
+  Upload,
+  File as LucideFile
 } from 'lucide-react';
 
 const INITIAL_BOOKS: Book[] = [
@@ -76,11 +78,29 @@ const INITIAL_BOOKS: Book[] = [
 
 const App: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<Category | 'dashboard'>('dashboard');
-  const [books, setBooks] = useState<Book[]>(INITIAL_BOOKS);
+  const [books, setBooks] = useState<Book[]>(() => {
+    const saved = localStorage.getItem('d-bms-books');
+    return saved ? JSON.parse(saved) : INITIAL_BOOKS;
+  });
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingBook, setEditingBook] = useState<Book | undefined>(undefined);
   const [viewingBook, setViewingBook] = useState<Book | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Persistence
+  useEffect(() => {
+    localStorage.setItem('d-bms-books', JSON.stringify(books));
+  }, [books]);
+
+  // Handle routing via query params (New Tab Support)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const bookId = params.get('bookId');
+    if (bookId) {
+      const book = books.find(b => b.id === bookId);
+      if (book) setViewingBook(book);
+    }
+  }, [books]);
 
   const filteredBooks = useMemo(() => {
     let result = books;
@@ -124,7 +144,9 @@ const App: React.FC = () => {
   };
 
   const handleViewDetails = (book: Book) => {
-    setViewingBook(book);
+    const url = new URL(window.location.href);
+    url.searchParams.set('bookId', book.id);
+    window.open(url.toString(), '_blank');
   };
 
   const stats = [
@@ -340,90 +362,225 @@ const App: React.FC = () => {
 
       {/* Detail Modal Overlay - Rendered outside Layout to stay on top of Sidebar */}
       {viewingBook && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xl animate-fadeIn" onClick={() => setViewingBook(undefined)}>
-          <div className="bg-white w-full max-w-5xl rounded-xl overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)] flex flex-col md:flex-row max-h-[90vh]" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[200] bg-white animate-fadeIn flex flex-col overflow-hidden">
+          {/* Top Bar Navigation */}
+          <div className="h-20 border-b border-slate-100 flex items-center justify-between px-8 bg-white/80 backdrop-blur-md sticky top-0 z-30">
+            <button
+              onClick={() => {
+                const url = new URL(window.location.href);
+                url.searchParams.delete('bookId');
+                window.history.replaceState({}, '', url.toString());
+                setViewingBook(undefined);
+              }}
+              className="flex items-center gap-3 text-slate-900 hover:text-emerald-600 transition-all font-black text-xs uppercase tracking-widest group"
+            >
+              <div className="w-10 h-10 border border-slate-100 rounded-xl flex items-center justify-center group-hover:bg-slate-50 transition-colors">
+                <ChevronRight size={20} />
+              </div>
+              العودة للمكتبة
+            </button>
+
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => { handleEdit(viewingBook); setViewingBook(undefined); }}
+                className="flex items-center gap-2 px-5 py-2.5 bg-slate-50 text-slate-900 rounded-xl font-black text-[10px] uppercase hover:bg-slate-100 transition-all"
+              >
+                <Edit2 size={14} />
+                تعديل السجل
+              </button>
+              <button
+                onClick={() => handleDelete(viewingBook.id)}
+                className="flex items-center gap-2 px-5 py-2.5 bg-red-50 text-red-600 rounded-xl font-black text-[10px] uppercase hover:bg-red-100 transition-all"
+              >
+                <Trash2 size={14} />
+                حذف
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
             {/* Left Panel: Cover & Key Roles */}
-            <div className="md:w-[38%] bg-slate-50 p-8 flex flex-col items-center border-l border-slate-100 overflow-y-auto scrollbar-hide">
-              <div className="w-full relative mb-8 group">
-                <div className="absolute inset-0 bg-emerald-500 rounded-xl blur-3xl opacity-20 scale-90 group-hover:scale-110 transition-transform"></div>
-                <img src={viewingBook.image} className="w-full aspect-[3/4] object-cover rounded-xl shadow-2xl relative z-10" alt={viewingBook.title} />
-                <div className={`absolute -bottom-4 left-1/2 -translate-x-1/2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl z-20 border border-white/20 ${STATUS_COLORS[viewingBook.status]}`}>
+            <div className="md:w-[35%] bg-slate-50/50 p-12 flex flex-col items-center border-l border-slate-100 overflow-y-auto scrollbar-hide">
+              <div className="w-full max-w-sm relative mb-12 group">
+                <div className="absolute inset-0 bg-emerald-500 rounded-2xl blur-[60px] opacity-20 scale-90 group-hover:scale-110 transition-transform duration-700"></div>
+                <img src={viewingBook.image} className="w-full aspect-[3/4] object-cover rounded-2xl shadow-[0_32px_64px_-16px_rgba(15,23,42,0.2)] relative z-10 border border-white" alt={viewingBook.title} />
+                <div className={`absolute -bottom-6 left-1/2 -translate-x-1/2 px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] shadow-2xl z-20 border border-white/40 ${STATUS_COLORS[viewingBook.status]}`}>
                   {viewingBook.status}
                 </div>
               </div>
 
-              <h2 className="text-2xl font-black text-slate-900 text-center mb-2 leading-tight">{viewingBook.title}</h2>
-              <p className="text-emerald-600 font-black text-xs tracking-[0.2em] mb-8 text-center uppercase">{viewingBook.author}</p>
+              <div className="text-center mb-12">
+                <h2 className="text-4xl font-black text-slate-900 mb-4 leading-tight tracking-tight">{viewingBook.title}</h2>
+                <div className="inline-flex items-center gap-3 px-4 py-2 bg-emerald-50 rounded-xl">
+                  <div className="w-2 h-2 bg-emerald-500 rounded-xl"></div>
+                  <p className="text-emerald-700 font-black text-[11px] tracking-[0.2em] uppercase">{viewingBook.author}</p>
+                </div>
+              </div>
 
-              <div className="w-full space-y-2.5">
-                <DetailItem label="المراجعة العلمية" value={viewingBook.scientificReview} />
-                <DetailItem label="الترجمة" value={viewingBook.translation} />
-                <DetailItem label="المقوم اللغوي" value={viewingBook.linguisticCorrector} />
-                <DetailItem label="التحقيق" value={viewingBook.investigation} />
-                <DetailItem label="المخرج الفني" value={viewingBook.director} />
-                <DetailItem label="تصميم الغلاف" value={viewingBook.coverDesigner} />
-                <DetailItem label="سنة النشر" value={viewingBook.publicationYear} />
-                <DetailItem label="رقم الطبعة" value={viewingBook.edition} />
+              <div className="w-full space-y-3">
+                <div className="px-6 py-4 bg-white rounded-2xl border border-slate-100 shadow-sm space-y-3">
+                  <DetailItem label="المراجعة العلمية" value={viewingBook.scientificReview} />
+                  <DetailItem label="الترجمة" value={viewingBook.translation} />
+                  <DetailItem label="المقوم اللغوي" value={viewingBook.linguisticCorrector} />
+                  <DetailItem label="التحقيق" value={viewingBook.investigation} />
+                  <DetailItem label="المخرج الفني" value={viewingBook.director} />
+                  <DetailItem label="تصميم الغلاف" value={viewingBook.coverDesigner} />
+                  <DetailItem label="سنة النشر" value={viewingBook.publicationYear} />
+                  <DetailItem label="رقم الطبعة" value={viewingBook.edition} />
+                </div>
               </div>
             </div>
 
             {/* Right Panel: Technical Details */}
-            <div className="flex-1 p-10 overflow-y-auto scrollbar-hide bg-white relative">
-              <div className="flex items-center justify-between mb-10">
-                <div>
-                  <h3 className="text-3xl font-black text-slate-900 tracking-tight">المواصفات الفنية</h3>
-                  <p className="text-slate-400 font-black uppercase tracking-[0.3em] text-[9px] mt-1">Full Technical Specification Sheet</p>
+            <div className="flex-1 p-16 overflow-y-auto scrollbar-hide bg-white">
+              <div className="max-w-4xl mx-auto">
+                <div className="mb-16">
+                  <h3 className="text-4xl font-black text-slate-900 tracking-tight mb-2">المواصفات الفنية</h3>
+                  <p className="text-slate-400 font-black uppercase tracking-[0.3em] text-[10px]">Detailed Publication Specification Sheet</p>
                 </div>
-                <button onClick={() => setViewingBook(undefined)} className="w-10 h-10 flex items-center justify-center bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-400 transition-all">
-                  <X size={20} />
-                </button>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-8">
-                <TechnicalBox label="صنف الإصدار" value={viewingBook.type} icon={<Layers size={18} />} />
-                <TechnicalBox label="مقاس القطع" value={viewingBook.size === PublicationSize.Custom ? `مخصص (${viewingBook.customSize})` : viewingBook.size} icon={<BookOpen size={18} />} />
-                <TechnicalBox label="الحالة الحالية" value={viewingBook.status} icon={<Settings size={18} />} color={STATUS_COLORS[viewingBook.status].split(' ')[1]} />
-                <TechnicalBox label="حجم الصفحات" value={`${viewingBook.pageCount} صفحة`} icon={<FileText size={18} />} />
-                <TechnicalBox label="رقم الإيداع" value={viewingBook.depositNumber || 'غير محدد'} icon={<Info size={18} />} />
-                <TechnicalBox label="الرقم المعياري (ISBN)" value={viewingBook.isbn || 'غير محدد'} icon={<Info size={18} />} />
-              </div>
-
-              <div className="mt-12 p-8 bg-slate-900 text-white rounded-xl relative overflow-hidden shadow-2xl">
-                <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-500/10 rounded-xl -mr-20 -mt-20 blur-3xl"></div>
-                <div className="relative z-10">
-                  <h4 className="font-black text-base mb-3 flex items-center gap-3">
-                    <div className="w-2.5 h-2.5 bg-emerald-400 rounded-xl shadow-[0_0_10px_rgba(52,211,153,0.5)]"></div>
-                    مذكرة التدقيق
-                  </h4>
-                  <p className="text-slate-400 text-xs leading-[1.8] font-medium opacity-90 max-w-md">
-                    هذا الإصدار معتمد ومسجل ضمن قاعدة بيانات منصة الدليل. تم التحقق من المراجعات اللغوية والعلمية. يرجى التقيّد بالمعايير الفنية الموضحة أعلاه عند الطباعة.
-                  </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-16 gap-y-12">
+                  <TechnicalBox label="صنف الإصدار" value={viewingBook.type} icon={<Layers size={22} />} />
+                  <TechnicalBox label="مقاس القطع" value={viewingBook.size === PublicationSize.Custom ? `مخصص (${viewingBook.customSize})` : viewingBook.size} icon={<BookOpen size={22} />} />
+                  <TechnicalBox label="الحالة الحالية" value={viewingBook.status} icon={<Settings size={22} />} color={STATUS_COLORS[viewingBook.status].split(' ')[1]} />
+                  <TechnicalBox label="حجم الصفحات" value={`${viewingBook.pageCount} صفحة`} icon={<FileText size={22} />} />
+                  <TechnicalBox label="رقم الإيداع" value={viewingBook.depositNumber || 'غير محدد'} icon={<Info size={22} />} />
+                  <TechnicalBox label="الرقم المعياري (ISBN)" value={viewingBook.isbn || 'غير محدد'} icon={<Info size={22} />} />
                 </div>
-              </div>
 
-              <div className="mt-12 flex items-center justify-end gap-4">
-                <button onClick={() => { setViewingBook(undefined); handleEdit(viewingBook); }} className="px-7 py-3.5 text-slate-900 font-black text-xs border border-slate-100 rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2">
-                  <Edit2 size={14} />
-                  تعديل السجل
-                </button>
-                <button onClick={() => setViewingBook(undefined)} className="px-8 py-3.5 bg-slate-900 text-white font-black text-xs rounded-xl shadow-xl hover:shadow-2xl hover:-translate-y-0.5 transition-all">إغلاق النافذة</button>
+                {/* Production Lifecycle Section */}
+                <div className="mt-20">
+                  <div className="flex items-center justify-between mb-8 border-b border-slate-50 pb-4">
+                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">دورة الإنتاج والملفات</h3>
+                    <span className="px-4 py-1.5 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest">Production Lifecycle</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+                    <div className="space-y-6">
+                      <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] border-r-2 border-emerald-500 pr-3">المواعيد الأساسية</p>
+                      <div className="space-y-4">
+                        <DateInfo label="الاستلام من البحوث" date={viewingBook.receivedFromResearchDate} />
+                        <DateInfo label="المصادقة على العنوان" date={viewingBook.titleApprovalDate} imageUrl={viewingBook.titleApprovalImage} />
+                        <DateInfo label="طلب رقم الإيداع" date={viewingBook.depositRequestDate} />
+                        <DateInfo label="استلام رقم الإيداع" date={viewingBook.depositReceiveDate} />
+                        <DateInfo label="استمارة الصرف" date={viewingBook.disbursementFormDate} imageUrl={viewingBook.disbursementFormImage} color="text-emerald-600" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-6">
+                      <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] border-r-2 border-blue-500 pr-3">إدارة الملفات</p>
+                      <div className="bg-slate-50 p-6 rounded-[24px] space-y-5">
+                        <div>
+                          <p className="text-[9px] font-black text-slate-400 mb-3 uppercase">ملفات الغلاف</p>
+                          <div className="flex flex-col gap-2 font-bold">
+                            <FileBadge url={viewingBook.coverEditableUrl} label="النسخة القابلة للتحرير (PSD)" />
+                            <FileBadge url={viewingBook.coverViewableUrl} label="نسخة للمشاهدة" />
+                            <FileBadge url={viewingBook.coverPrintableUrl} label="نسخة المطبعة" />
+                            <FileBadge url={viewingBook.coverSignatureUrl} label="توقيع الرئاسة" />
+                          </div>
+                        </div>
+                        <div className="pt-4 border-t border-slate-200/50">
+                          <p className="text-[9px] font-black text-slate-400 mb-3 uppercase">ملفات المتن</p>
+                          <div className="flex flex-col gap-2 font-bold">
+                            <FileBadge url={viewingBook.bodyEditableUrl} label="المتن القابل للتحرير" />
+                            <FileBadge url={viewingBook.bodyPdfUrl} label="ملف المتن النهائي PDF" />
+                            <FileBadge url={viewingBook.bodyWatermarkUrl} label="نسخة العلامة المائية" />
+                            <FileBadge url={viewingBook.bodySignaturesUrl} label="استمارة التوقيعات" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-6">
+                      <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] border-r-2 border-slate-900 pr-3">التنفيذ والطباعة</p>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl shadow-sm">
+                          <div>
+                            <p className="text-[8px] font-black text-slate-400 uppercase mb-0.5">المطبعة المعتمدة</p>
+                            <p className="text-xs font-black text-slate-900">{viewingBook.printingHouse || 'لم تُحدد'}</p>
+                          </div>
+                          <div className="px-3 py-1 bg-slate-900 text-white rounded-lg text-[8px] font-black">
+                            {viewingBook.printQuantity || '0'} نسخة
+                          </div>
+                        </div>
+                        <DateInfo label="الإرسال للطبعة الرقمية" date={viewingBook.digitalPrintDate} />
+                        <DateInfo label="الإرسال للأوفسيت" date={viewingBook.offsetPrintDate} />
+                        <DateInfo label="تأييد الغلاف" date={viewingBook.coverEndorsementDate} />
+                        <DateInfo label="الاستلام النهائي" date={viewingBook.receiveFromPrintDate} color="text-blue-600" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Workflow Analysis Section */}
+                  <div className="bg-slate-50 p-8 rounded-[32px] mt-12 grid grid-cols-1 md:grid-cols-2 gap-12">
+                    <WorkflowStep
+                      label="مرحلة الإخراج الفني"
+                      sender="المرسل للإخراج"
+                      sentDate={viewingBook.sentToDirectorDate}
+                      receivedDate={viewingBook.receivedFromDirectorDate}
+                      icon={<Activity size={20} />}
+                      color="blue"
+                    />
+                    <WorkflowStep
+                      label="مرحلة التصميم والابتكار"
+                      sender="المرسل للتصميم"
+                      sentDate={viewingBook.sentToDesignerDate}
+                      receivedDate={viewingBook.receivedFromDesignerDate}
+                      icon={<Box size={20} />}
+                      color="emerald"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-20 p-10 bg-slate-900 text-white rounded-[32px] relative overflow-hidden shadow-2xl">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-xl -mr-32 -mt-32 blur-[100px]"></div>
+                  <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
+                    <div className="w-20 h-20 bg-emerald-500 rounded-3xl flex items-center justify-center text-slate-900 shadow-[0_0_40px_rgba(16,185,129,0.3)]">
+                      <ShieldCheck size={40} />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-xl mb-4 flex items-center gap-3">
+                        مذكرة التدقيق والجودة
+                      </h4>
+                      <p className="text-slate-400 text-sm leading-[1.8] font-medium opacity-90 max-w-xl">
+                        هذا الإصدار معتمد ومسجل ضمن قاعدة بيانات منصة الدليل. تم التحقق من كافة المراجعات اللغوية والعلمية وفقاً لمعايير الجودة المتبعة. يرجى التقيّد بالمواصفات الفنية الموضحة أعلاه عند البدء بعمليات الطباعة والإنتاج.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-20 pt-10 border-t border-slate-50 flex items-center justify-between">
+                  <div>
+                    <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">تاريخ الإنشاء في النظام</p>
+                    <p className="text-slate-900 font-bold">24 سبتمبر 2023</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const url = new URL(window.location.href);
+                      url.searchParams.delete('bookId');
+                      window.history.replaceState({}, '', url.toString());
+                      setViewingBook(undefined);
+                    }}
+                    className="px-10 py-4 bg-slate-900 text-white font-black text-xs rounded-2xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all active:scale-95"
+                  >
+                    إغلاق وتأكيد المراجعة
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal Form - Rendered outside Layout */}
+      {/* Wizard Form - Full Page Overlay */}
       {isFormOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-          <div className="w-full max-w-4xl max-h-[92vh] overflow-y-auto rounded-xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] scrollbar-hide">
-            <BookForm
-              book={editingBook}
-              onSave={handleSaveBook}
-              onCancel={() => setIsFormOpen(false)}
-              initialCategory={activeCategory === 'dashboard' ? Category.Books : activeCategory}
-            />
-          </div>
+        <div className="fixed inset-0 z-[150] bg-white animate-fadeIn">
+          <BookForm
+            book={editingBook}
+            onSave={handleSaveBook}
+            onCancel={() => setIsFormOpen(false)}
+            initialCategory={activeCategory === 'dashboard' ? Category.Books : activeCategory}
+          />
         </div>
       )}
     </>
@@ -501,5 +658,81 @@ const TechnicalBox: React.FC<{ label: string; value: string; icon: React.ReactNo
     </div>
   </div>
 );
+
+const DateInfo: React.FC<{ label: string; date?: string; color?: string; imageUrl?: string }> = ({ label, date, color, imageUrl }) => (
+  <div className="flex items-center justify-between border-b border-slate-50 py-2 group/date">
+    <div className="flex items-center gap-2">
+      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{label}</span>
+      {imageUrl && (
+        <div className="w-4 h-4 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center" title={imageUrl}>
+          <LucideFile size={10} />
+        </div>
+      )}
+    </div>
+    <span className={`text-[11px] font-bold ${color || 'text-slate-700'}`}>{date || '—'}</span>
+  </div>
+);
+
+const FileBadge: React.FC<{ url?: string; label: string }> = ({ url, label }) => (
+  <div className={`flex items-center justify-between p-2 rounded-xl border transition-all ${url ? 'bg-white border-emerald-100/50 shadow-sm' : 'bg-transparent border-slate-200/30 opacity-40'}`}>
+    <div className="flex items-center gap-2 overflow-hidden">
+      <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${url ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-300'}`}>
+        <LucideFile size={14} />
+      </div>
+      <div className="overflow-hidden">
+        <p className={`text-[9px] font-black truncate ${url ? 'text-slate-900' : 'text-slate-400'}`}>{label}</p>
+        {url && <p className="text-[8px] font-bold text-emerald-600 truncate">{url}</p>}
+      </div>
+    </div>
+    {url && (
+      <div className="p-1 px-2 bg-emerald-50 text-emerald-600 rounded-lg text-[8px] font-black flex items-center gap-1">
+        <Upload size={10} className="rotate-180" />
+        مرفوع
+      </div>
+    )}
+  </div>
+);
+
+const WorkflowStep: React.FC<{ label: string; sender: string; sentDate?: string; receivedDate?: string; icon: React.ReactNode; color: string }> = ({ label, sender, sentDate, receivedDate, icon, color }) => {
+  const calculateDays = (start?: string, end?: string) => {
+    if (!start || !end) return null;
+    const s = new Date(start);
+    const e = new Date(end);
+    const diff = Math.floor((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24));
+    return diff >= 0 ? diff : null;
+  };
+  const days = calculateDays(sentDate, receivedDate);
+
+  return (
+    <div className="flex gap-6 items-start group">
+      <div className={`w-14 h-14 rounded-2xl bg-${color}-50 text-${color}-600 flex items-center justify-center shrink-0 shadow-sm border border-${color}-100 group-hover:scale-110 transition-transform`}>
+        {icon}
+      </div>
+      <div className="flex-1 space-y-4">
+        <div>
+          <h4 className="text-base font-black text-slate-900 mb-1">{label}</h4>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{sender}</p>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="p-3 bg-white rounded-xl border border-slate-100">
+            <p className="text-[8px] font-black text-slate-400 uppercase mb-1">تاريخ الإرسال</p>
+            <p className="text-xs font-bold text-slate-700">{sentDate || '—'}</p>
+          </div>
+          <div className="p-3 bg-white rounded-xl border border-slate-100 flex items-center justify-between">
+            <div>
+              <p className="text-[8px] font-black text-slate-400 uppercase mb-1">تاريخ الاستلام</p>
+              <p className="text-xs font-bold text-slate-700">{receivedDate || '—'}</p>
+            </div>
+            {days !== null && (
+              <div className="px-2 py-1 bg-slate-900 text-white rounded-lg text-[8px] font-black">
+                {days} يوم
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default App;
