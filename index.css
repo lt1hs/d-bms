@@ -1,6 +1,16 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --radius-none: 0;
+  --radius-sm: 10px;
+  --radius-default: 10px;
+  --radius-md: 10px;
+  --radius-lg: 10px;
+  --radius-xl: 10px;
+  --radius-2xl: 10px;
+  --radius-3xl: 10px;
+  --radius-full: 10px;
+}
 
 @layer base {
   body {
@@ -18,7 +28,7 @@
     border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 10px;
   }
-  
+
   .pro-shadow {
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
   }
