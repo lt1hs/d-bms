@@ -15,6 +15,7 @@ return new class extends Migration {
             $table->string('username')->unique();
             $table->string('password');
             $table->string('role')->default('ADMIN');
+            $table->longText('profile_image')->nullable();
             $table->json('permissions')->nullable();
             $table->rememberToken();
             $table->timestamps();

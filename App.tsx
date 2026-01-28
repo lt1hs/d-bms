@@ -322,19 +322,28 @@ const App: React.FC = () => {
       setIsSaving(true);
       const token = localStorage.getItem('d-bms-token');
       if (token) {
-        const createdUser = await authService.createUser(token, newUser);
-        setUsers([...users, createdUser]);
+        if (newUser.id) {
+          // Update existing user
+          const updatedUser = await authService.updateUser(token, newUser.id, newUser);
+          setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+          alert('تم تعديل بيانات الحساب بنجاح');
+        } else {
+          // Create new user
+          const createdUser = await authService.createUser(token, newUser);
+          setUsers([...users, createdUser]);
+          alert('تم إنشاء الحساب بنجاح');
+        }
+
         setNewUser({
           username: '',
           password: '',
           role: UserRole.ADMIN,
           permissions: { canAdd: true, canEdit: true, canDelete: false, canHide: true }
         });
-        alert('تم إنشاء الحساب بنجاح');
       }
     } catch (error) {
-      console.error('Failed to create user:', error);
-      alert('حدث خطأ أثناء إنشاء الحساب');
+      console.error('Failed to save user:', error);
+      alert('حدث خطأ أثناء حفظ بيانات الحساب');
     } finally {
       setIsSaving(false);
     }
@@ -570,11 +579,26 @@ const App: React.FC = () => {
 
               {settingsTab === 'users' ? (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  {/* Form to add users */}
+                  {/* Form to add/edit users */}
                   <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-6">
-                    <div className="flex items-center gap-3 mb-2">
-                      <UserPlus size={18} className="text-emerald-500" />
-                      <h3 className="text-sm font-black text-slate-900">إضافة حساب إداري جديد</h3>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <UserPlus size={18} className="text-emerald-500" />
+                        <h3 className="text-sm font-black text-slate-900">{newUser.id ? 'تعديل بيانات الحساب' : 'إضافة حساب إداري جديد'}</h3>
+                      </div>
+                      {newUser.id && (
+                        <button
+                          onClick={() => setNewUser({
+                            username: '',
+                            password: '',
+                            role: UserRole.ADMIN,
+                            permissions: { canAdd: true, canEdit: true, canDelete: false, canHide: true }
+                          })}
+                          className="text-[10px] text-red-500 font-bold hover:underline"
+                        >
+                          إلغاء التعديل
+                        </button>
+                      )}
                     </div>
                     <form onSubmit={handleAddUser} className="space-y-4">
                       <div className="space-y-1.5">
@@ -588,16 +612,65 @@ const App: React.FC = () => {
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">كلمة المرور</label>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                          كلمة المرور
+                          {newUser.id && <span className="text-emerald-500 text-[9px] mr-2">(اتركها فارغة للإبقاء على الحالية)</span>}
+                        </label>
                         <input
                           type="password"
-                          required
+                          required={!newUser.id}
                           value={newUser.password}
                           onChange={e => setNewUser({ ...newUser, password: e.target.value })}
                           className="w-full px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl focus:outline-none focus:border-emerald-500 text-xs font-bold"
                         />
                       </div>
                       <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">صورة الملف الشخصي</label>
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-100 border border-slate-200">
+                            {newUser.profileImage ? (
+                              <img src={newUser.profileImage} alt="Profile" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                <Users size={20} />
+                              </div>
+                            )}
+                          </div>
+                          <label className="cursor-pointer px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-black text-slate-500 hover:bg-slate-100 transition-all">
+                            اختر صورة
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  if (file.size > 2 * 1024 * 1024) {
+                                    alert('File too large');
+                                    return;
+                                  }
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => {
+                                    setNewUser({ ...newUser, profileImage: reader.result as string });
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                            />
+                          </label>
+                          {newUser.profileImage && (
+                            <button
+                              type="button"
+                              onClick={() => setNewUser({ ...newUser, profileImage: undefined })}
+                              className="text-red-500 text-[10px] font-black hover:underline"
+                            >
+                              حذف
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">الصلاحيات المخصصة</label>
                         <div className="grid grid-cols-2 gap-2 mt-2">
                           <label className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg cursor-pointer">
@@ -634,8 +707,12 @@ const App: React.FC = () => {
                       {users.map(u => (
                         <div key={u.id} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center justify-between group">
                           <div className="flex items-center gap-4">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${u.role === UserRole.SUPER_ADMIN ? 'bg-slate-900 text-white shadow-lg' : 'bg-slate-50 text-slate-400'}`}>
-                              {u.role === UserRole.SUPER_ADMIN ? <ShieldCheck size={20} /> : <Users size={20} />}
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden ${u.role === UserRole.SUPER_ADMIN ? 'bg-slate-900 text-white shadow-lg' : 'bg-slate-50 text-slate-400'}`}>
+                              {u.profileImage ? (
+                                <img src={u.profileImage} alt={u.username} className="w-full h-full object-cover" />
+                              ) : (
+                                u.role === UserRole.SUPER_ADMIN ? <ShieldCheck size={20} /> : <Users size={20} />
+                              )}
                             </div>
                             <div>
                               <h4 className="text-[13px] font-black text-slate-900">{u.username}</h4>
@@ -643,12 +720,22 @@ const App: React.FC = () => {
                             </div>
                           </div>
                           {u.role !== UserRole.SUPER_ADMIN && (
-                            <button
-                              onClick={() => handleRemoveUser(u.id)}
-                              className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                            >
-                              <Trash2 size={16} />
-                            </button>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => setNewUser(u)}
+                                className="p-2 text-slate-300 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all"
+                                title="تعديل المستخدم"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button
+                                onClick={() => handleRemoveUser(u.id)}
+                                className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                title="حذف المستخدم"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
                           )}
                         </div>
                       ))}

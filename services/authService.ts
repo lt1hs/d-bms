@@ -27,6 +27,7 @@ export const authService = {
                 console.error('Failed to parse permissions:', e);
             }
         }
+        (data.user as any).profileImage = (data.user as any).profile_image || (data.user as any).profileImage;
         return data;
     },
 
@@ -60,6 +61,8 @@ export const authService = {
                 console.error('Failed to parse permissions:', e);
             }
         }
+        // Map snake_case to camelCase
+        (user as any).profileImage = (user as any).profile_image || (user as any).profileImage;
         return user;
     },
 
@@ -72,15 +75,24 @@ export const authService = {
         });
         if (!response.ok) throw new Error('Failed to fetch users');
         const users = await response.json();
-        return users.map((u: User) => {
+        return users.map((u: any) => {
             if (typeof u.permissions === 'string') {
                 try { u.permissions = JSON.parse(u.permissions); } catch (e) { }
             }
-            return u;
+            // Map snake_case to camelCase
+            u.profileImage = u.profile_image || u.profileImage;
+            return u as User;
         });
     },
 
     async createUser(token: string, user: Partial<User>): Promise<User> {
+        // Map camelCase to snake_case for backend
+        const payload: any = { ...user };
+        if (payload.profileImage) {
+            payload.profile_image = payload.profileImage;
+            delete payload.profileImage;
+        }
+
         const response = await fetch(`${API_URL}/users`, {
             method: 'POST',
             headers: {
@@ -88,14 +100,41 @@ export const authService = {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
-            body: JSON.stringify(user)
+            body: JSON.stringify(payload)
         });
         if (!response.ok) throw new Error('Failed to create user');
         const newUser = await response.json();
         if (typeof newUser.permissions === 'string') {
             try { newUser.permissions = JSON.parse(newUser.permissions); } catch (e) { }
         }
+        (newUser as any).profileImage = (newUser as any).profile_image || (newUser as any).profileImage;
         return newUser;
+    },
+
+    async updateUser(token: string, id: string, user: Partial<User>): Promise<User> {
+        // Map camelCase to snake_case for backend
+        const payload: any = { ...user };
+        if (payload.profileImage) {
+            payload.profile_image = payload.profileImage;
+            delete payload.profileImage;
+        }
+
+        const response = await fetch(`${API_URL}/users/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+        if (!response.ok) throw new Error('Failed to update user');
+        const updatedUser = await response.json();
+        if (typeof updatedUser.permissions === 'string') {
+            try { updatedUser.permissions = JSON.parse(updatedUser.permissions); } catch (e) { }
+        }
+        (updatedUser as any).profileImage = (updatedUser as any).profile_image || (updatedUser as any).profileImage;
+        return updatedUser;
     },
 
     async deleteUser(token: string, id: string): Promise<void> {

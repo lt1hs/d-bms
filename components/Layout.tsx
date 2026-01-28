@@ -219,8 +219,12 @@ const Layout: React.FC<LayoutProps> = ({ children, activeCategory, setActiveCate
 
                 <div className={`flex items-center relative z-10 w-full ${isCollapsed ? 'flex-col gap-4' : 'justify-between'}`}>
                   <div className={`flex items-center ${isCollapsed ? 'flex-col gap-2' : 'gap-3'}`}>
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0 shadow-inner">
-                      <ShieldCheck size={20} />
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0 shadow-inner overflow-hidden">
+                      {user.profileImage ? (
+                        <img src={user.profileImage} alt={user.username} className="w-full h-full object-cover" />
+                      ) : (
+                        <ShieldCheck size={20} />
+                      )}
                     </div>
                     <div className={`flex flex-col transition-all duration-300 ${isCollapsed ? 'w-0 h-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'}`}>
                       <p className="text-[12px] font-black text-white leading-none truncate max-w-[80px]">{user.username}</p>

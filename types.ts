@@ -110,4 +110,5 @@ export interface User {
   password?: string;
   role: UserRole;
   permissions: AdminPermissions;
+  profileImage?: string;
 }
