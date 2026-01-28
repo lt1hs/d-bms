@@ -9,9 +9,10 @@ interface BookFormProps {
   onSave: (data: Partial<Book>) => void;
   onCancel: () => void;
   initialCategory?: Category;
+  isSaving?: boolean;
 }
 
-const BookForm: React.FC<BookFormProps> = ({ book, onSave, onCancel, initialCategory }) => {
+const BookForm: React.FC<BookFormProps> = ({ book, onSave, onCancel, initialCategory, isSaving = false }) => {
   const [activeTab, setActiveTab] = useState<'part1' | 'part2' | 'part3'>('part1');
   const [formData, setFormData] = useState<Partial<Book>>(book || {
     category: initialCategory || Category.Books,
@@ -35,14 +36,31 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSave, onCancel, initialCate
     image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=400'
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const [imageType, setImageType] = useState<'link' | 'upload'>(
+    book?.image?.startsWith('blob:') || book?.image?.startsWith('data:') ? 'upload' : 'link'
+  );
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  // Update form data when switching types if needed, or just let the UI handle it
+  const handleImageTypeChange = (type: 'link' | 'upload') => {
+    setImageType(type);
+    // Optional: Clear image if switching types? 
+    // For now we keep it so user doesn't lose data accidentally
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    if (activeTab === 'part1') {
+      setActiveTab('part2');
+    } else if (activeTab === 'part2') {
+      setActiveTab('part3');
+    } else if (activeTab === 'part3') {
+      onSave(formData);
+    }
   };
 
   const inputClass = "w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-bold text-slate-700 text-xs placeholder:text-slate-200 shadow-sm";
@@ -70,7 +88,7 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSave, onCancel, initialCate
             <StepIndicator
               step={1}
               active={activeTab === 'part1'}
-              completed={activeTab !== 'part1'}
+              completed={activeTab === 'part2' || activeTab === 'part3'}
               label="بيانات الإصدار"
               onClick={() => setActiveTab('part1')}
             />
@@ -80,7 +98,9 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSave, onCancel, initialCate
               active={activeTab === 'part2'}
               completed={activeTab === 'part3'}
               label="المواصفات الفنية"
-              onClick={() => setActiveTab('part2')}
+              onClick={() => {
+                if (activeTab !== 'part1') setActiveTab('part2');
+              }}
             />
             <div className="w-12 h-px bg-slate-100"></div>
             <StepIndicator
@@ -88,7 +108,11 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSave, onCancel, initialCate
               active={activeTab === 'part3'}
               completed={false}
               label="تتبع الإنتاج"
-              onClick={() => setActiveTab('part3')}
+              onClick={() => {
+                if (activeTab === 'part3') setActiveTab('part3'); // Already there or do nothing
+                // To allow clicking back only if we've reached it:
+                // if (activeTab === 'part3') ... 
+              }}
             />
           </div>
         </div>
@@ -103,7 +127,7 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSave, onCancel, initialCate
       <div className="flex-1 overflow-y-auto scrollbar-hide py-12 px-8">
         <div className="max-w-5xl mx-auto">
           <form onSubmit={handleSubmit} className="space-y-12 pb-24">
-            <div className="bg-white p-12 rounded-[40px] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.03)] border border-slate-100">
+            <div className="bg-white p-12 rounded-xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.03)] border border-slate-100">
               {activeTab === 'part1' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 animate-fadeIn">
                   <div className="md:col-span-2 mb-2">
@@ -201,9 +225,43 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSave, onCancel, initialCate
                     <label className={labelClass}>إجمالي الصفحات</label>
                     <input type="number" name="pageCount" value={formData.pageCount} onChange={handleChange} className={inputClass} />
                   </div>
-                  <div className="md:col-span-2">
-                    <label className={labelClass}>رابط صورة الغلاف</label>
-                    <input type="text" name="image" value={formData.image} onChange={handleChange} className={inputClass} placeholder="https://..." />
+                  <div className="md:col-span-2 space-y-2">
+                    <label className={labelClass}>صورة الغلاف</label>
+                    <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
+                      <button
+                        type="button"
+                        onClick={() => handleImageTypeChange('link')}
+                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${imageType === 'link' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}
+                      >
+                        رابط مباشر
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleImageTypeChange('upload')}
+                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${imageType === 'upload' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}
+                      >
+                        رفع ملف
+                      </button>
+                    </div>
+
+                    {imageType === 'link' ? (
+                      <input
+                        type="text"
+                        name="image"
+                        value={formData.image}
+                        onChange={handleChange}
+                        className={inputClass}
+                        placeholder="https://..."
+                      />
+                    ) : (
+                      <FileUploader
+                        label=""
+                        value={formData.image?.startsWith('data:') ? 'تم اختيار صورة الغلاف' : undefined}
+                        onChange={(dataUrl) => {
+                          setFormData(prev => ({ ...prev, image: dataUrl }))
+                        }}
+                      />
+                    )}
                   </div>
                 </div>
               )}
@@ -218,7 +276,7 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSave, onCancel, initialCate
                   </div>
 
                   {/* Dates Section */}
-                  <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50/50 p-5 rounded-2xl border border-slate-100">
+                  <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50/50 p-5 rounded-xl border border-slate-100">
                     <div className="md:col-span-3 mb-2">
                       <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">مواعيد الاستلام والاعتمادات</p>
                     </div>
@@ -255,7 +313,7 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSave, onCancel, initialCate
                   </div>
 
                   {/* Files Status */}
-                  <div className="md:col-span-1 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                  <div className="md:col-span-1 bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
                     <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-4 border-b border-slate-50 pb-2">ملفات الغلاف</p>
                     <div className="space-y-4">
                       <FileUploader label="النسخة قابلة للتحرير (PSD/AI)" value={formData.coverEditableUrl} onChange={(url) => setFormData(prev => ({ ...prev, coverEditableUrl: url }))} />
@@ -265,7 +323,7 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSave, onCancel, initialCate
                     </div>
                   </div>
 
-                  <div className="md:col-span-1 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                  <div className="md:col-span-1 bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
                     <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-4 border-b border-slate-50 pb-2">ملفات المتن</p>
                     <div className="space-y-4">
                       <FileUploader label="النسخة قابلة للتحرير (Docx/InDesign)" value={formData.bodyEditableUrl} onChange={(url) => setFormData(prev => ({ ...prev, bodyEditableUrl: url }))} />
@@ -276,7 +334,7 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSave, onCancel, initialCate
                   </div>
 
                   <div className="md:col-span-1 space-y-4">
-                    <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100">
+                    <div className="bg-emerald-50 p-5 rounded-xl border border-emerald-100">
                       <div className="flex items-center justify-between mb-1">
                         <label className={labelClass + " !mb-0 !text-emerald-700"}>تاريخ ملء استمارة الصرف</label>
                         <AttachmentTrigger
@@ -286,14 +344,14 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSave, onCancel, initialCate
                       </div>
                       <input type="date" name="disbursementFormDate" value={formData.disbursementFormDate} onChange={handleChange} className={inputClass} />
                     </div>
-                    <div className="bg-slate-900 p-5 rounded-2xl text-white">
+                    <div className="bg-slate-900 p-5 rounded-xl text-white">
                       <p className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-50">هوية الإصدار</p>
                       <h4 className="text-sm font-black text-emerald-400 truncate">{formData.title || 'لم يُحدد عنوان'}</h4>
                     </div>
                   </div>
 
                   {/* Process Flow */}
-                  <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/50 p-5 rounded-2xl border border-slate-100">
+                  <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/50 p-5 rounded-xl border border-slate-100">
                     <div className="space-y-4">
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">مراحل الإخراج الفني</p>
                       <div className="grid grid-cols-2 gap-4">
@@ -324,7 +382,7 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSave, onCancel, initialCate
                   </div>
 
                   {/* Printing Details */}
-                  <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                  <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-4 bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
                     <div>
                       <label className={labelClass}>الإرسال للطبعة الرقمية</label>
                       <input type="date" name="digitalPrintDate" value={formData.digitalPrintDate} onChange={handleChange} className={inputClass} />
@@ -353,6 +411,17 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSave, onCancel, initialCate
                       <label className={labelClass}>المنفذ</label>
                       <input type="text" name="executor" value={formData.executor} onChange={handleChange} className={inputClass} />
                     </div>
+                    <div className="md:col-span-4 mt-2">
+                      <label className={labelClass}>ملاحظات الإدارة (مذكرة التدقيق والجودة)</label>
+                      <textarea
+                        name="adminNotes"
+                        value={formData.adminNotes}
+                        onChange={handleChange}
+                        rows={3}
+                        className={inputClass + " resize-none min-h-[80px] pt-3"}
+                        placeholder="أدخل ملاحظات التدقيق والجودة هنا..."
+                      />
+                    </div>
                   </div>
                 </div>
               )}
@@ -378,8 +447,7 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSave, onCancel, initialCate
               <div className="flex gap-3">
                 {activeTab === 'part1' ? (
                   <button
-                    type="button"
-                    onClick={() => setActiveTab('part2')}
+                    type="submit"
                     className="flex items-center gap-2 px-8 py-3 bg-slate-900 text-white rounded-xl font-black shadow-md hover:translate-y-[-1px] transition-all text-xs"
                   >
                     <span>المتابعة</span>
@@ -387,8 +455,7 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSave, onCancel, initialCate
                   </button>
                 ) : activeTab === 'part2' ? (
                   <button
-                    type="button"
-                    onClick={() => setActiveTab('part3')}
+                    type="submit"
                     className="flex items-center gap-2 px-8 py-3 bg-slate-900 text-white rounded-xl font-black shadow-md hover:translate-y-[-1px] transition-all text-xs"
                   >
                     <span>دورة الإنتاج</span>
@@ -397,10 +464,15 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSave, onCancel, initialCate
                 ) : (
                   <button
                     type="submit"
-                    className="flex items-center gap-2 px-10 py-3 bg-emerald-600 text-white rounded-xl font-black shadow-md hover:bg-emerald-700 hover:translate-y-[-1px] transition-all text-xs"
+                    disabled={isSaving}
+                    className="flex items-center gap-2 px-10 py-3 bg-emerald-600 text-white rounded-xl font-black shadow-md hover:bg-emerald-700 hover:translate-y-[-1px] transition-all text-xs disabled:opacity-70 disabled:cursor-not-allowed"
                   >
-                    <Save size={16} />
-                    <span>حفظ السجل</span>
+                    {isSaving ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <Save size={16} />
+                    )}
+                    <span>{isSaving ? 'جاري الحفظ...' : 'حفظ السجل'}</span>
                   </button>
                 )}
               </div>
@@ -431,12 +503,17 @@ const FileUploader: React.FC<{ label: string; value?: string; onChange: (url: st
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 2 * 1024 * 1024) { // Limit to 2MB to avoid "Data too long" for now
+        alert('File is too large for this prototype. Please use an image smaller than 2MB.');
+        return;
+      }
       setIsUploading(true);
-      // Simulate upload delay
-      setTimeout(() => {
-        onChange(file.name); // Storing filename as simulation
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        onChange(reader.result as string);
         setIsUploading(false);
-      }, 800);
+      };
+      reader.readAsDataURL(file);
     }
   };
 

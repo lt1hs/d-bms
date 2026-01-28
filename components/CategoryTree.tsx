@@ -58,7 +58,7 @@ const ProTreeGroup: React.FC<{
             {/* Compact Category Trunk */}
             <div className="relative flex items-center h-full shrink-0">
                 <div className={`
-                    w-20 min-h-[160px] bg-white border-2 border-slate-900 rounded-3xl 
+                    w-20 min-h-[160px] bg-white border-2 border-slate-900 rounded-xl 
                     flex flex-col items-center justify-center p-4 shadow-[0_10px_30px_rgba(0,0,0,0.04)] 
                     ${cls.border} transition-all duration-500 relative overflow-hidden
                 `}>
@@ -106,7 +106,7 @@ const CategoryTree: React.FC<CategoryTreeProps> = ({ books, onViewDetails }) => 
     };
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-8 gap-y-10 p-6 bg-slate-50/20 rounded-[12px] border border-slate-100">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-8 gap-y-10 p-6 bg-slate-50/20 rounded-xl border border-slate-100">
             {CATEGORIES.map((cat) => {
                 const catBooks = books.filter(b => b.category === cat).slice(-5).reverse();
                 if (catBooks.length === 0) return null;

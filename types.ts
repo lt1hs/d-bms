@@ -88,4 +88,26 @@ export interface Book {
   bodyPdfUrl?: string;
   bodyWatermarkUrl?: string;
   bodySignaturesUrl?: string;
+  adminNotes?: string;
+  publicVisible?: boolean;
+}
+
+export enum UserRole {
+  SUPER_ADMIN = 'SUPER_ADMIN',
+  ADMIN = 'ADMIN'
+}
+
+export interface AdminPermissions {
+  canAdd: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+  canHide: boolean;
+}
+
+export interface User {
+  id: string;
+  username: string;
+  password?: string;
+  role: UserRole;
+  permissions: AdminPermissions;
 }
