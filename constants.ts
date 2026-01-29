@@ -28,7 +28,7 @@ export const INITIAL_BOOK_DATA = {
   size: PublicationSize.Waziri,
   customSize: '',
   status: ProcessStatus.InProgress,
-  image: 'https://picsum.photos/400/600',
+  image: '/images/placeholder.jpg',
   depositNumber: '',
   isbn: '',
   pageCount: 0,

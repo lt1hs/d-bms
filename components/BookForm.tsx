@@ -33,7 +33,7 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSave, onCancel, initialCate
     depositNumber: '',
     isbn: '',
     pageCount: 0,
-    image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=400'
+    image: '/images/placeholder.jpg'
   });
 
   const [imageType, setImageType] = useState<'link' | 'upload'>(

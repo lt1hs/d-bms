@@ -8,6 +8,9 @@ import { STATUS_COLORS, CATEGORIES } from './constants';
 import CategoryTree from './components/CategoryTree';
 import { bookService } from './services/bookService';
 import { authService } from './services/authService';
+import BookCard from './components/BookCard';
+import BookRow from './components/BookRow';
+import { DetailItem, TechnicalBox, DateInfo, FileBadge, WorkflowStep } from './components/BookDetailsHelpers';
 import {
   Plus,
   Search,
@@ -65,7 +68,7 @@ const INITIAL_BOOKS: Book[] = [
     size: PublicationSize.Waziri,
     customSize: '',
     status: ProcessStatus.Printed,
-    image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=400',
+    image: '/images/book-1.jpg',
     depositNumber: 'DEP-1234',
     isbn: '978-3-16-148410-0',
     pageCount: 350
@@ -87,7 +90,7 @@ const INITIAL_BOOKS: Book[] = [
     size: PublicationSize.Rahli,
     customSize: '',
     status: ProcessStatus.InPrinting,
-    image: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&q=80&w=400',
+    image: '/images/magazine-1.jpg',
     depositNumber: 'DEP-5678',
     isbn: 'ISSN-1234-5678',
     pageCount: 64
@@ -1287,260 +1290,6 @@ const App: React.FC = () => {
   );
 };
 
-const BookCard: React.FC<{
-  book: Book;
-  onEdit: (b: Book) => void;
-  onDelete: (id: string) => void;
-  onViewDetails: (b: Book) => void;
-  onToggleVisibility: (id: string) => void;
-  user: User | null;
-}> = ({ book, onEdit, onDelete, onViewDetails, onToggleVisibility, user }) => {
-  return (
-    <div className={`bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden flex flex-col group transition-all duration-700 hover:shadow-lg hover:-translate-y-1 relative ${book.publicVisible === false ? 'opacity-60' : ''}`}>
-      <div className="relative aspect-[3/4.5] overflow-hidden">
-        <img src={book.image} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-in-out" />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-        <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
-          <span className={`px-2.5 py-1 rounded-lg text-[7px] font-black uppercase tracking-wider backdrop-blur-md border border-white/20 shadow-lg ${STATUS_COLORS[book.status]}`}>
-            {book.status}
-          </span>
-          {user && (user.permissions.canHide === true || (user.permissions.canHide as any) === 1 || (user.permissions.canHide as any) === '1') && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onToggleVisibility(book.id); }}
-              className={`p-1.5 rounded-lg backdrop-blur-md border border-white/20 shadow-lg transition-all ${book.publicVisible === false ? 'bg-red-500 text-white' : 'bg-white/80 text-slate-900'}`}
-              title={book.publicVisible === false ? "مخفي عن الجمهور" : "مرئي للجمهور"}
-            >
-              {book.publicVisible === false ? <EyeOff size={10} /> : <Eye size={10} />}
-            </button>
-          )}
-        </div>
-
-        {/* Action Overlay */}
-        <div className="absolute inset-x-0 bottom-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out z-20">
-          <div className="flex gap-1.5">
-            {user && (user.permissions.canEdit === true || (user.permissions.canEdit as any) === 1 || (user.permissions.canEdit as any) === '1') && (
-              <button
-                onClick={() => onEdit(book)}
-                className="flex-1 py-1.5 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white rounded-lg text-[8px] font-black tracking-widest transition-all border border-white/20"
-              >
-                تعديل
-              </button>
-            )}
-            <button
-              onClick={() => onViewDetails(book)}
-              className="flex-1 py-1.5 bg-white text-slate-900 rounded-lg text-[8px] font-black tracking-widest transition-all shadow-xl hover:bg-slate-50"
-            >
-              تفاصيل
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="p-3 flex-1 flex flex-col bg-white">
-        <div className="flex-1">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <div className="w-1 h-1 rounded-full bg-slate-200" />
-            <span className="text-slate-400 text-[7px] font-black uppercase tracking-widest">{book.category}</span>
-          </div>
-          <h3 className="text-[12px] font-black text-slate-900 leading-tight mb-0.5 line-clamp-2 min-h-[32px]">{book.title}</h3>
-          <p className="text-[9px] font-bold text-slate-400 truncate">{book.author}</p>
-        </div>
-
-        <div className="mt-3 pt-2 border-t border-slate-50 flex items-center justify-between">
-          <div className="flex items-center gap-1 text-slate-300">
-            <Clock size={10} />
-            <span className="text-[8px] font-black">{book.publicationYear}</span>
-          </div>
-          {user?.permissions.canDelete && (
-            <div className="flex items-center gap-1">
-              <button onClick={() => onDelete(book.id)} className="p-1 text-slate-200 hover:text-red-500 transition-all">
-                <Trash2 size={12} />
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const BookRow: React.FC<{
-  book: Book;
-  onEdit: (b: Book) => void;
-  onDelete: (id: string) => void;
-  onViewDetails: (b: Book) => void;
-  onToggleVisibility: (id: string) => void;
-  user: User | null;
-}> = ({ book, onEdit, onDelete, onViewDetails, onToggleVisibility, user }) => {
-  return (
-    <div className={`bg-white p-3 rounded-xl border border-slate-100 hover:border-slate-200 hover:shadow-md transition-all group flex items-center gap-6 ${book.publicVisible === false ? 'border-red-100 bg-red-50/10' : ''}`}>
-      <div className="w-16 h-20 rounded-xl overflow-hidden shadow-sm shrink-0 border border-slate-50">
-        <img src={book.image} alt={book.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-      </div>
-
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <span className={`px-2 py-0.5 rounded-md text-[7px] font-black uppercase tracking-widest ${STATUS_COLORS[book.status]}`}>{book.status}</span>
-          <span className="text-slate-300 text-[8px] font-black uppercase tracking-widest">• {book.category}</span>
-          {book.publicVisible === false && (
-            <span className="px-2 py-0.5 bg-red-500 text-white rounded-md text-[7px] font-black uppercase tracking-widest flex items-center gap-1">
-              <EyeOff size={8} /> مخفي
-            </span>
-          )}
-        </div>
-        <h3 className="text-sm font-black text-slate-900 truncate mb-0.5">{book.title}</h3>
-        <p className="text-[10px] font-bold text-slate-400 truncate">{book.author}</p>
-      </div>
-
-      <div className="hidden lg:flex items-center gap-12 px-8">
-        <div>
-          <p className="text-[7px] font-black text-slate-300 uppercase tracking-widest mb-1">سنة النشر</p>
-          <p className="text-xs font-black text-slate-700">{book.publicationYear}</p>
-        </div>
-        {user && (
-          <>
-            <div>
-              <p className="text-[7px] font-black text-slate-300 uppercase tracking-widest mb-1">رقم الطبعة</p>
-              <p className="text-xs font-black text-slate-700">{book.edition}</p>
-            </div>
-            <div>
-              <p className="text-[7px] font-black text-slate-300 uppercase tracking-widest mb-1">المخرج الفني</p>
-              <p className="text-xs font-black text-slate-700 truncate max-w-[100px]">{book.director || '—'}</p>
-            </div>
-          </>
-        )}
-      </div>
-
-      <div className="flex items-center gap-2 border-r border-slate-50 pr-4 mr-2">
-        <button
-          onClick={() => onViewDetails(book)}
-          className="px-4 py-2 bg-slate-50 text-slate-600 rounded-xl text-[10px] font-black hover:bg-slate-100 transition-all"
-        >
-          التفاصيل
-        </button>
-        {user?.permissions.canEdit && (
-          <button
-            onClick={() => onEdit(book)}
-            className="p-2 text-slate-300 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all"
-          >
-            <Edit2 size={16} />
-          </button>
-        )}
-        {user?.permissions.canHide && (
-          <button
-            onClick={() => onToggleVisibility(book.id)}
-            className={`p-2 rounded-xl transition-all ${book.publicVisible === false ? 'text-red-500 bg-red-50' : 'text-slate-300 hover:text-emerald-500 hover:bg-slate-50'}`}
-          >
-            {book.publicVisible === false ? <EyeOff size={16} /> : <Eye size={16} />}
-          </button>
-        )}
-        {user?.permissions.canDelete && (
-          <button
-            onClick={() => onDelete(book.id)}
-            className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-          >
-            <Trash2 size={16} />
-          </button>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const DetailItem: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <div className="flex items-center justify-between border-b border-slate-100/60 py-2.5 w-full">
-    <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest">{label}</span>
-    <span className="text-[12px] text-slate-700 font-bold text-left">{value || '—'}</span>
-  </div>
-);
-
-const TechnicalBox: React.FC<{ label: string; value: string; icon: React.ReactNode; color?: string }> = ({ label, value, icon, color }) => (
-  <div className="flex items-center gap-4 group">
-    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-500 border border-transparent group-hover:border-slate-100 ${color ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'}`}>
-      {icon}
-    </div>
-    <div>
-      <p className="text-[9px] text-slate-300 font-black uppercase tracking-[0.2em] mb-1">{label}</p>
-      <p className={`text-base font-black ${color ? color : 'text-slate-900'} tracking-tight`}>{value}</p>
-    </div>
-  </div>
-);
-
-const DateInfo: React.FC<{ label: string; date?: string; color?: string; imageUrl?: string }> = ({ label, date, color, imageUrl }) => (
-  <div className="flex items-center justify-between border-b border-slate-50 py-2 group/date">
-    <div className="flex items-center gap-2">
-      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{label}</span>
-      {imageUrl && (
-        <div className="w-4 h-4 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center" title={imageUrl}>
-          <LucideFile size={10} />
-        </div>
-      )}
-    </div>
-    <span className={`text-[11px] font-bold ${color || 'text-slate-700'}`}>{date || '—'}</span>
-  </div>
-);
-
-const FileBadge: React.FC<{ url?: string; label: string }> = ({ url, label }) => (
-  <div className={`flex items-center justify-between p-2 rounded-xl border transition-all ${url ? 'bg-white border-emerald-100/50 shadow-sm' : 'bg-transparent border-slate-200/30 opacity-40'}`}>
-    <div className="flex items-center gap-2 overflow-hidden">
-      <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${url ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-300'}`}>
-        <LucideFile size={14} />
-      </div>
-      <div className="overflow-hidden">
-        <p className={`text-[9px] font-black truncate ${url ? 'text-slate-900' : 'text-slate-400'}`}>{label}</p>
-        {url && <p className="text-[8px] font-bold text-emerald-600 truncate">{url}</p>}
-      </div>
-    </div>
-    {url && (
-      <div className="p-1 px-2 bg-emerald-50 text-emerald-600 rounded-lg text-[8px] font-black flex items-center gap-1">
-        <Upload size={10} className="rotate-180" />
-        مرفوع
-      </div>
-    )}
-  </div>
-);
-
-const WorkflowStep: React.FC<{ label: string; sender: string; sentDate?: string; receivedDate?: string; icon: React.ReactNode; color: string }> = ({ label, sender, sentDate, receivedDate, icon, color }) => {
-  const calculateDays = (start?: string, end?: string) => {
-    if (!start || !end) return null;
-    const s = new Date(start);
-    const e = new Date(end);
-    const diff = Math.floor((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24));
-    return diff >= 0 ? diff : null;
-  };
-  const days = calculateDays(sentDate, receivedDate);
-
-  return (
-    <div className="flex gap-6 items-start group">
-      <div className={`w-14 h-14 rounded-xl bg-${color}-50 text-${color}-600 flex items-center justify-center shrink-0 shadow-sm border border-${color}-100 group-hover:scale-110 transition-transform`}>
-        {icon}
-      </div>
-      <div className="flex-1 space-y-4">
-        <div>
-          <h4 className="text-base font-black text-slate-900 mb-1">{label}</h4>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{sender}</p>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="p-3 bg-white rounded-xl border border-slate-100">
-            <p className="text-[8px] font-black text-slate-400 uppercase mb-1">تاريخ الإرسال</p>
-            <p className="text-xs font-bold text-slate-700">{sentDate || '—'}</p>
-          </div>
-          <div className="p-3 bg-white rounded-xl border border-slate-100 flex items-center justify-between">
-            <div>
-              <p className="text-[8px] font-black text-slate-400 uppercase mb-1">تاريخ الاستلام</p>
-              <p className="text-xs font-bold text-slate-700">{receivedDate || '—'}</p>
-            </div>
-            {days !== null && (
-              <div className="px-2 py-1 bg-slate-900 text-white rounded-lg text-[8px] font-black">
-                {days} يوم
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 export default App;

@@ -19,7 +19,7 @@ class BookSeeder extends Seeder
             'status' => 'مطبوع',
             'publication_year' => '2023',
             'isbn' => '978-3-16-148410-0',
-            'image' => 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=400',
+            'image' => '/images/book-1.jpg',
         ]);
 
         \App\Models\Book::create([
@@ -29,7 +29,7 @@ class BookSeeder extends Seeder
             'status' => 'قيد الطباعة',
             'publication_year' => '2024',
             'isbn' => 'ISSN-1234-5678',
-            'image' => 'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&q=80&w=400',
+            'image' => '/images/magazine-1.jpg',
         ]);
     }
 }
